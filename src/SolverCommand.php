@@ -45,7 +45,7 @@ final class SolverCommand extends Command
             return Command::SUCCESS;
         }
 
-        $solver->loadInput($this->kernel->getProjectDir() . '/inputs/01.txt');
+        $solver->loadInput($this->kernel->getProjectDir() . '/inputs/' . $solver->getDay() . '.txt');
         $solver->preSolve();
         $output->writeln(\sprintf('First star result: %s', $solver->firstStar()));
         if ($solver->isFirstStarSolved()) {
