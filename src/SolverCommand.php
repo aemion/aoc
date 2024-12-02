@@ -83,9 +83,9 @@ final class SolverCommand extends Command
 
     private function test(AbstractSolver $solver, OutputInterface $output): void
     {
-        $results = fopen($this->kernel->getProjectDir() . '/inputs/test/01_results.txt', 'rb');
+        $results = fopen($this->kernel->getProjectDir() . '/inputs/test/' . $solver->getDay() . '_results.txt', 'rb');
         $expected = trim(fgets($results));
-        $solver->loadInput($this->kernel->getProjectDir() . '/inputs/test/01.txt');
+        $solver->loadInput($this->kernel->getProjectDir() . '/inputs/test/' . $solver->getDay() . '.txt');
         $solver->preSolve();
         $result = $solver->firstStar();
         if ($result === $expected) {
