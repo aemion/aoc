@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App;
 
-abstract class Solver
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
+
+#[AutoconfigureTag('app.solver')]
+abstract class AbstractSolver
 {
     public function isFirstStarSolved(): bool
     {

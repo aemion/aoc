@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Y2024;
 
-use App\Solver;
+use App\AbstractSolver;
 
-class Day1 extends Solver
+class Day1 extends AbstractSolver
 {
     private array $leftList = [];
     private array $rightList = [];
