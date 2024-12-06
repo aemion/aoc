@@ -56,7 +56,64 @@ class Day6 extends AbstractSolver
 
     public function firstStar(): string
     {
+        $path = $this->getNonObstrucatedPath();
+
+        return (string) \count($path);
+    }
+
+    public function secondStar(): string
+    {
         $total = 0;
+        $path = $this->getNonObstrucatedPath();
+        foreach ($path as $potentialObstaclePosition) {
+            if ($potentialObstaclePosition->equals($this->initialPosition)) {
+                continue;
+            }
+            $stuck = false;
+            $inTheGrid = true;
+            $grid = clone $this->grid;
+            $position = $this->initialPosition;
+            $this->grid->setValue($position, 'X');
+            $direction = $this->initialDirection->getVector2D();
+
+            // On met un obstacle en plus
+            $grid->setValue($potentialObstaclePosition, '#');
+
+            $cycleDetectionList = [$position . '|' . $direction => true];
+
+            while ($inTheGrid && !$stuck) {
+                $nextPotentialPosition = $position->addVector2D($direction);
+                if (!$grid->isInside($nextPotentialPosition)) {
+                    $inTheGrid = false;
+                } else {
+                    $nextValue = $grid->getValue($nextPotentialPosition);
+                    if ($nextValue === '#') {
+                        $direction = $direction->multiplyMatrix2D($this->rotationMatrix);
+                    } else {
+                        $position = $nextPotentialPosition;
+                        $index = $position . '|' . $direction;
+                        if (isset($cycleDetectionList[$index])) {
+                            $stuck = true;
+                        } else {
+                            $cycleDetectionList[$index] = true;
+                        }
+                    }
+                }
+            }
+
+            if ($stuck) {
+                $total++;
+            }
+        }
+
+        return (string) $total;
+    }
+
+    /**
+     * @return list<Vector2DInt>
+     */
+    public function getNonObstrucatedPath(): array
+    {
         $inTheGrid = true;
         $grid = clone $this->grid;
         $position = $this->initialPosition;
@@ -76,66 +133,15 @@ class Day6 extends AbstractSolver
                 }
             }
         }
-
-        foreach ($grid->toArray() as $line) {
-            foreach ($line as $value) {
-                if ($value === 'X') {
-                    $total++;
-                }
-            }
-        }
-
-        return (string) $total;
-    }
-
-    public function secondStar(): string
-    {
-        $total = 0;
-        // TODO method to iterate on all coords in grid
-        foreach ($this->grid->toArray() as $x => $line) {
+        $path = [];
+        foreach ($grid->toArray() as $x => $line) {
             foreach ($line as $y => $value) {
-                if (\in_array($value, ['X', '#'], true)) {
-                    continue;
-                }
-
-                $stuck = false;
-                $inTheGrid = true;
-                $grid = clone $this->grid;
-                $position = $this->initialPosition;
-                $this->grid->setValue($position, 'X');
-                $direction = $this->initialDirection->getVector2D();
-
-                // On met un obstacle en plus
-                $grid->setValue(new Vector2DInt($x, $y), '#');
-
-                $cycleDetectionList = [$position . '|' . $direction => true];
-
-                while ($inTheGrid && !$stuck) {
-                    $nextPotentialPosition = $position->addVector2D($direction);
-                    if (!$grid->isInside($nextPotentialPosition)) {
-                        $inTheGrid = false;
-                    } else {
-                        $nextValue = $grid->getValue($nextPotentialPosition);
-                        if ($nextValue === '#') {
-                            $direction = $direction->multiplyMatrix2D($this->rotationMatrix);
-                        } else {
-                            $position = $nextPotentialPosition;
-                            $index = $position . '|' . $direction;
-                            if (isset($cycleDetectionList[$index])) {
-                                $stuck = true;
-                            } else {
-                                $cycleDetectionList[$index] = true;
-                            }
-                        }
-                    }
-                }
-
-                if ($stuck) {
-                    $total++;
+                if ($value === 'X') {
+                    $path[] = new Vector2DInt($x, $y);
                 }
             }
         }
 
-        return (string) $total;
+        return $path;
     }
 }
