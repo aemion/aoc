@@ -5,89 +5,31 @@ declare(strict_types=1);
 namespace App\Y2024;
 
 use App\AbstractSolver;
+use App\Y2024\Model\Direction;
+use App\Y2024\Model\Grid;
+use App\Y2024\Model\Matrix2DInt;
+use App\Y2024\Model\Vector2DInt;
 
 final class Day4 extends AbstractSolver
 {
-    private array $grid;
-    private int $xMax;
-    private int $yMax;
+    private Grid $grid;
 
-    public function getDirections(): array
+    public function getOppositeVector(Vector2DInt $direction): Vector2DInt
     {
-        return [
-            'topleft'     => ['x' => static fn(int $x) => $x - 1, 'y' => static fn(int $y) => $y - 1],
-            'top'         => ['x' => static fn(int $x) => $x - 1, 'y' => static fn(int $y) => $y],
-            'topright'    => ['x' => static fn(int $x) => $x - 1, 'y' => static fn(int $y) => $y + 1],
-            'left'        => ['x' => static fn(int $x) => $x, 'y' => static fn(int $y) => $y - 1],
-            'right'       => ['x' => static fn(int $x) => $x, 'y' => static fn(int $y) => $y + 1],
-            'bottomleft'  => ['x' => static fn(int $x) => $x + 1, 'y' => static fn(int $y) => $y - 1],
-            'bottom'      => ['x' => static fn(int $x) => $x + 1, 'y' => static fn(int $y) => $y],
-            'bottomright' => ['x' => static fn(int $x) => $x + 1, 'y' => static fn(int $y) => $y + 1],
-        ];
-    }
-
-    public function getOppositeDirection(string $direction): array
-    {
-        $directions = $this->getDirections();
-        $opposites = [
-            'topleft'  => 'bottomright',
-            'top'      => 'bottom',
-            'topright' => 'bottomleft',
-            'left'     => 'right',
-
-            'bottomright' => 'topleft',
-            'bottom'      => 'top',
-            'bottomleft'  => 'topright',
-            'right'       => 'left',
-        ];
-
-        return $directions[$opposites[$direction]];
-    }
-
-    public function getOrthogonalDirections(string $direction): array
-    {
-        $directions = $this->getDirections();
-        $orthogonals = [
-
-            'topleft'  => ['topright', 'bottomleft'],
-            'top'      => ['left', 'right'],
-            'topright' => ['topleft', 'bottomright'],
-            'left'     => ['top', 'bottom'],
-
-            'bottomright' => ['topright', 'bottomleft'],
-            'bottom'      => ['left', 'right'],
-            'bottomleft'  => ['topleft', 'bottomright'],
-            'right'       => ['top', 'bottom'],
-        ];
-
-        $orthogonalDirections = $orthogonals[$direction];
-        $result = [];
-        foreach ($orthogonalDirections as $directionName) {
-            $result[$directionName] = $directions[$directionName];
-        }
-
-        return $result;
+        $rotationMatrix = new Matrix2DInt(-1, 0, 0, -1);
+        return $direction->multiplyMatrix2D($rotationMatrix);
     }
 
     public function loadInput(string $path): void
     {
-        $this->grid = [];
+        $grid = [];
         $file = fopen($path, 'rb');
-        $x = 0;
-        $y = 0;
         while (!feof($file)) {
-            $character = fgetc($file);
-            if ($character === "\n" || $character === false) {
-                $x++;
-                $y = 0;
-                continue;
-            }
+            $line = trim(fgets($file));
 
-            $this->grid[$x][$y] = $character;
-            $y++;
+            $grid[] = str_split($line);
         }
-        $this->xMax = \count($this->grid);
-        $this->yMax = \count($this->grid[0]);
+        $this->grid = new Grid($grid);
     }
 
     public function isFirstStarSolved(): bool
@@ -97,16 +39,16 @@ final class Day4 extends AbstractSolver
 
     public function firstStar(): string
     {
-        $directions = $this->getDirections();
+        $directions = Direction::vectorsWithDiagonals();
         $total = 0;
-        for ($x = 0; $x < $this->xMax; $x++) {
-            for ($y = 0; $y < $this->yMax; $y++) {
-                if ($this->grid[$x][$y] !== 'X') {
+        foreach ($this->grid->toArray() as $x => $line) {
+            foreach ($line as $y => $value) {
+                if ($value !== 'X') {
                     continue;
                 }
 
                 foreach ($directions as $direction) {
-                    if ($this->isValidNextLetter($direction, $x, $y, ['M', 'A', 'S'])) {
+                    if ($this->isValidNextLetter($direction, new Vector2DInt($x, $y), ['M', 'A', 'S'])) {
                         $total++;
                     }
                 }
@@ -118,25 +60,16 @@ final class Day4 extends AbstractSolver
 
     public function secondStar(): string
     {
-        $directions = $this->getDirections();
-        // // Pour éviter les doublons, on ne prend que 4 directions
-        $directions = array_filter(
-            $directions,
-            static fn(string $direction): bool => \in_array(
-                $direction,
-                ['topleft', 'bottomleft', 'topright', 'bottomright'],
-                true
-            ),
-            ARRAY_FILTER_USE_KEY
-        );
+        $directions = Direction::diagonals();
 
+        $rotationMatrix90 = new Matrix2DInt(0, 1, -1, 0);
         $total = 0;
-        // $coords = [];
-        for ($x = 0; $x < $this->xMax; $x++) {
-            for ($y = 0; $y < $this->yMax; $y++) {
+        foreach ($this->grid->toArray() as $x => $line) {
+            foreach ($line as $y => $value) {
                 $counted = false;
+                $position = new Vector2DInt($x, $y);
 
-                if ($this->grid[$x][$y] !== 'A') {
+                if ($this->grid->getValue($position) !== 'A') {
                     continue;
                 }
 
@@ -146,26 +79,31 @@ final class Day4 extends AbstractSolver
                     }
 
                     // Première branche
-                    if (!$this->isValidNextLetter($direction, $x, $y, ['M'])) {
+                    $mPositionCheck = $position->addVector2D($direction);
+                    if ($this->grid->tryGetValue($mPositionCheck) !== 'M') {
                         continue;
                     }
 
-                    if (!$this->isValidNextLetter($this->getOppositeDirection($name), $x, $y, ['S'])) {
+                    $oppositeDirection = $this->getOppositeVector($direction);
+                    $sPositionCheck = $position->addVector2D($oppositeDirection);
+                    if ($this->grid->tryGetValue($sPositionCheck) !== 'S') {
                         continue;
                     }
 
-                    // Deuxième branche
-                    $orthogonalDirections = $this->getOrthogonalDirections($name);
-                    foreach ($orthogonalDirections as $orthogonalName => $orthogonalDirection) {
-                        if (!$this->isValidNextLetter($orthogonalDirection, $x, $y, ['M'])) {
-                            continue;
-                        }
+                    $orthogonalDirection1 = $direction->multiplyMatrix2D($rotationMatrix90);
+                    $orthogonalDirection2 = $this->getOppositeVector($orthogonalDirection1);
 
-                        if ($this->isValidNextLetter($this->getOppositeDirection($orthogonalName), $x, $y, ['S'])) {
-                            $total++;
-                            $counted = true;
-                            $direction[$orthogonalName] = $orthogonalDirection;
-                        }
+                    $corner1 = $position->addVector2D($orthogonalDirection1);
+                    $corner2 = $position->addVector2D($orthogonalDirection2);
+
+                    $corner1Value = $this->grid->tryGetValue($corner1);
+                    $corner2Value = $this->grid->tryGetValue($corner2);
+                    if (
+                        ($corner1Value === 'M' && $corner2Value === 'S')
+                        || ($corner2Value === 'M' && $corner1Value === 'S')
+                    ) {
+                        $counted = true;
+                        $total++;
                     }
                 }
             }
@@ -174,36 +112,24 @@ final class Day4 extends AbstractSolver
         return (string) $total;
     }
 
-    public function isValidNextLetter(array $direction, int $x, int $y, array $letters): bool
+    public function isValidNextLetter(Vector2DInt $direction, Vector2DInt $position, array $letters): bool
     {
         if (empty($letters)) {
             return true;
         }
 
-        $nextX = $direction['x']($x);
-        $nextY = $direction['y']($y);
-        if (!$this->hasValue($nextX, $nextY)) {
+        $nextPosition = $position->addVector2D($direction);
+        if (!$this->grid->isInside($nextPosition)) {
             return false;
         }
 
         $letter = array_shift($letters);
-        $value = $this->getValue($nextX, $nextY);
+        $value = $this->grid->getValue($nextPosition);
         if ($value !== $letter) {
             return false;
         }
 
         // Check next letter
-        return $this->isValidNextLetter($direction, $nextX, $nextY, $letters);
+        return $this->isValidNextLetter($direction, $nextPosition, $letters);
     }
-
-    public function hasValue(int $x, int $y): bool
-    {
-        return $x >= 0 && $y >= 0 && $x < $this->xMax && $y < $this->yMax;
-    }
-
-    public function getValue(int $x, int $y): string
-    {
-        return $this->grid[$x][$y];
-    }
-
 }

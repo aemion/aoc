@@ -20,5 +20,34 @@ enum Direction
             self::Right => new Vector2DInt(0, 1),
         };
     }
-}
 
+    /**
+     *  @return list<Vector2DInt>
+     */
+    public static function vectors(): array
+    {
+        return array_map(static fn(Direction $d) => $d->getVector2D(), self::cases());
+    }
+
+    /**
+     *  @return list<Vector2DInt>
+     */
+    public static function diagonals(): array
+    {
+        return [
+            self::Top->getVector2D()->addVector2D(self::Left->getVector2D()),
+            self::Top->getVector2D()->addVector2D(self::Right->getVector2D()),
+            self::Bottom->getVector2D()->addVector2D(self::Left->getVector2D()),
+            self::Bottom->getVector2D()->addVector2D(self::Right->getVector2D()),
+        ];
+    }
+
+
+    /**
+     *  @return list<Vector2DInt>
+     */
+    public static function vectorsWithDiagonals(): array
+    {
+        return array_merge(self::vectors(), self::diagonals());
+    }
+}
