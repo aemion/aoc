@@ -6,7 +6,7 @@ namespace App\Y2024;
 
 use App\AbstractSolver;
 
-class Day5 extends AbstractSolver
+final class Day5 extends AbstractSolver
 {
     private array $rawOrderingRules;
 

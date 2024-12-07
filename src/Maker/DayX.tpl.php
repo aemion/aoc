@@ -6,7 +6,7 @@ namespace App\Y<?= $year ?>;
 
 use App\AbstractSolver;
 
-class Day<?= $day ?> extends AbstractSolver
+final class Day<?= $day ?> extends AbstractSolver
 {
     public function loadInput(string $path): void
     {

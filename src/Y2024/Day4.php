@@ -6,7 +6,7 @@ namespace App\Y2024;
 
 use App\AbstractSolver;
 
-class Day4 extends AbstractSolver
+final class Day4 extends AbstractSolver
 {
     private array $grid;
     private int $xMax;

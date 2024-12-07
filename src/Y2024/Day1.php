@@ -6,7 +6,7 @@ namespace App\Y2024;
 
 use App\AbstractSolver;
 
-class Day1 extends AbstractSolver
+final class Day1 extends AbstractSolver
 {
     private array $leftList = [];
     private array $rightList = [];
