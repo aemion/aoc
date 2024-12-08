@@ -14,7 +14,7 @@ abstract class AbstractSolver
         return false;
     }
 
-    public function getDay(): string
+    public static function getDay(): string
     {
         $fqcn = static::class;
         $splitFqcn = explode('\\', $fqcn);

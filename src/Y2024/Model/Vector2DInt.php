@@ -12,6 +12,11 @@ final readonly class Vector2DInt implements \Stringable
     ) {
     }
 
+    public function multiplyScalar(int $a): Vector2DInt
+    {
+        return new Vector2DInt($this->x * $a, $this->y * $a);
+    }
+
     public function multiplyMatrix2D(Matrix2DInt $matrix): Vector2DInt
     {
         return new Vector2DInt(
@@ -23,6 +28,11 @@ final readonly class Vector2DInt implements \Stringable
     public function addVector2D(Vector2DInt $vector2D): Vector2DInt
     {
         return new Vector2DInt($this->x + $vector2D->x, $this->y + $vector2D->y);
+    }
+
+    public function substractVector2D(Vector2DInt $vector2D): Vector2DInt
+    {
+        return new Vector2DInt($this->x - $vector2D->x, $this->y - $vector2D->y);
     }
 
     public function __toString(): string
