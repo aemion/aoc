@@ -37,18 +37,16 @@ final class Day8 extends AbstractSolver
     public function preSolve(): void
     {
         $this->antennas = [];
-        foreach ($this->grid->toArray() as $x => $line) {
-            foreach ($line as $y => $value) {
-                if ($value === '.') {
-                    continue;
-                }
-
-                if (!isset($this->antennas[$value])) {
-                    $this->antennas[$value] = [];
-                }
-
-                $this->antennas[$value][] = new Vector2DInt($x, $y);
+        foreach ($this->grid->getCells() as $position => $value) {
+            if ($value === '.') {
+                continue;
             }
+
+            if (!isset($this->antennas[$value])) {
+                $this->antennas[$value] = [];
+            }
+
+            $this->antennas[$value][] = $position;
         }
     }
 

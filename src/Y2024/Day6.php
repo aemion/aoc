@@ -130,11 +130,9 @@ final class Day6 extends AbstractSolver
             }
         }
         $path = [];
-        foreach ($grid->toArray() as $x => $line) {
-            foreach ($line as $y => $value) {
-                if ($value === 'X') {
-                    $path[] = new Vector2DInt($x, $y);
-                }
+        foreach ($grid->getCells() as $position => $value) {
+            if ($value === 'X') {
+                $path[] = $position;
             }
         }
 

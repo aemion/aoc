@@ -40,16 +40,14 @@ final class Day4 extends AbstractSolver
     {
         $directions = Direction::vectorsWithDiagonals();
         $total = 0;
-        foreach ($this->grid->toArray() as $x => $line) {
-            foreach ($line as $y => $value) {
-                if ($value !== 'X') {
-                    continue;
-                }
+        foreach ($this->grid->getCells() as $position => $value) {
+            if ($value !== 'X') {
+                continue;
+            }
 
-                foreach ($directions as $direction) {
-                    if ($this->isValidNextLetter($direction, new Vector2DInt($x, $y), ['M', 'A', 'S'])) {
-                        $total++;
-                    }
+            foreach ($directions as $direction) {
+                if ($this->isValidNextLetter($direction, $position, ['M', 'A', 'S'])) {
+                    $total++;
                 }
             }
         }
@@ -63,47 +61,44 @@ final class Day4 extends AbstractSolver
 
         $rotationMatrix90 = new Matrix2DInt(0, 1, -1, 0);
         $total = 0;
-        foreach ($this->grid->toArray() as $x => $line) {
-            foreach ($line as $y => $value) {
-                $counted = false;
-                $position = new Vector2DInt($x, $y);
+        foreach ($this->grid->getCells() as $position => $value) {
+            $counted = false;
 
-                if ($this->grid->getValue($position) !== 'A') {
+            if ($value !== 'A') {
+                continue;
+            }
+
+            foreach ($directions as $direction) {
+                if ($counted) {
                     continue;
                 }
 
-                foreach ($directions as $name => $direction) {
-                    if ($counted) {
-                        continue;
-                    }
+                // Première branche
+                $mPositionCheck = $position->addVector2D($direction);
+                if ($this->grid->tryGetValue($mPositionCheck) !== 'M') {
+                    continue;
+                }
 
-                    // Première branche
-                    $mPositionCheck = $position->addVector2D($direction);
-                    if ($this->grid->tryGetValue($mPositionCheck) !== 'M') {
-                        continue;
-                    }
+                $oppositeDirection = $this->getOppositeVector($direction);
+                $sPositionCheck = $position->addVector2D($oppositeDirection);
+                if ($this->grid->tryGetValue($sPositionCheck) !== 'S') {
+                    continue;
+                }
 
-                    $oppositeDirection = $this->getOppositeVector($direction);
-                    $sPositionCheck = $position->addVector2D($oppositeDirection);
-                    if ($this->grid->tryGetValue($sPositionCheck) !== 'S') {
-                        continue;
-                    }
+                $orthogonalDirection1 = $direction->multiplyMatrix2D($rotationMatrix90);
+                $orthogonalDirection2 = $this->getOppositeVector($orthogonalDirection1);
 
-                    $orthogonalDirection1 = $direction->multiplyMatrix2D($rotationMatrix90);
-                    $orthogonalDirection2 = $this->getOppositeVector($orthogonalDirection1);
+                $corner1 = $position->addVector2D($orthogonalDirection1);
+                $corner2 = $position->addVector2D($orthogonalDirection2);
 
-                    $corner1 = $position->addVector2D($orthogonalDirection1);
-                    $corner2 = $position->addVector2D($orthogonalDirection2);
-
-                    $corner1Value = $this->grid->tryGetValue($corner1);
-                    $corner2Value = $this->grid->tryGetValue($corner2);
-                    if (
-                        ($corner1Value === 'M' && $corner2Value === 'S')
-                        || ($corner2Value === 'M' && $corner1Value === 'S')
-                    ) {
-                        $counted = true;
-                        $total++;
-                    }
+                $corner1Value = $this->grid->tryGetValue($corner1);
+                $corner2Value = $this->grid->tryGetValue($corner2);
+                if (
+                    ($corner1Value === 'M' && $corner2Value === 'S')
+                    || ($corner2Value === 'M' && $corner1Value === 'S')
+                ) {
+                    $counted = true;
+                    $total++;
                 }
             }
         }
