@@ -10,15 +10,15 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
-use Symfony\Component\HttpKernel\KernelInterface;
 
 #[AsCommand('app:solve')]
 final class SolverCommand extends Command
 {
     public function __construct(
-        private readonly KernelInterface $kernel,
-        #[TaggedIterator('app.solver')] private readonly iterable $solvers
+        #[TaggedIterator('app.solver')] private readonly iterable $solvers,
+        #[Autowire(param: 'kernel.project_dir')] private readonly string $projectDir,
     ) {
         parent::__construct();
     }
@@ -51,7 +51,7 @@ final class SolverCommand extends Command
             return Command::SUCCESS;
         }
 
-        $solver->loadInput($this->kernel->getProjectDir() . '/inputs/' . $solver->getDay() . '.txt');
+        $solver->loadInput($this->projectDir . '/inputs/' . $solver::getDay() . '.txt');
         $solver->preSolve();
         $output->writeln(\sprintf('First star result: %s', $solver->firstStar()));
         if ($solver->isFirstStarSolved()) {
@@ -89,9 +89,9 @@ final class SolverCommand extends Command
 
     private function test(AbstractSolver $solver, OutputInterface $output): void
     {
-        $results = fopen($this->kernel->getProjectDir() . '/test_inputs/' . $solver->getDay() . '_results.txt', 'rb');
+        $results = fopen($this->projectDir . '/test_inputs/' . $solver::getDay() . '_results.txt', 'rb');
         $expected = trim(fgets($results));
-        $solver->loadInput($this->kernel->getProjectDir() . '/test_inputs/' . $solver->getDay() . '.txt');
+        $solver->loadInput($this->projectDir . '/test_inputs/' . $solver::getDay() . '.txt');
         $solver->preSolve();
         $result = $solver->firstStar();
         if ($result === $expected) {
