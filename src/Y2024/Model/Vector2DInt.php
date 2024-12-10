@@ -29,4 +29,9 @@ final readonly class Vector2DInt implements \Stringable
     {
         return \sprintf('(%s,%s)', $this->x, $this->y);
     }
+
+    public function equals(Vector2DInt $vector2D): bool
+    {
+        return $this->x === $vector2D->x && $this->y === $vector2D->y;
+    }
 }
