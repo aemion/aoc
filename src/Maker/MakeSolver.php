@@ -48,12 +48,26 @@ class MakeSolver extends AbstractMaker
         }
 
         $variables = ['day' => $day, 'year' => 2024];
+        $className = \sprintf('App\Y%s\Day%s', $variables['year'], $variables['day']);
         $generator->generateClass(
-            \sprintf('App\Y%s\Day%s', $variables['year'], $variables['day']),
+            $className,
             $generator->getRootDirectory() . '/src/Maker/DayX.tpl.php',
             $variables
         );
         $generator->writeChanges();
+
+        $dayFileName = $className::getDay();
+        $paths = [
+            '/inputs/' . $dayFileName . '.txt',
+            '/test_inputs/' . $dayFileName . '.txt',
+            '/test_inputs/' . $dayFileName . '_results.txt',
+        ];
+
+        foreach ($paths as $path) {
+            $generator->dumpFile($generator->getRootDirectory() . $path, '');
+        }
+        $generator->writeChanges();
+
         $this->writeSuccessMessage($io);
     }
 
