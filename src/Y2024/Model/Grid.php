@@ -36,8 +36,15 @@ class Grid
         return $vector->x >= 0 && $vector->y >= 0 && $vector->x < $this->xMax && $vector->y < $this->yMax;
     }
 
-    public function toArray(): array
+    /**
+     * @return \Generator<Vector2DInt, string>
+     */
+    public function getCells(): \Generator
     {
-        return $this->grid;
+        foreach ($this->grid as $x => $line) {
+            foreach ($line as $y => $value) {
+                yield new Vector2DInt($x, $y) => $value;
+            }
+        }
     }
 }
