@@ -10,7 +10,7 @@ use App\Y2024\Model\Grid;
 use App\Y2024\Model\Matrix2DInt;
 use App\Y2024\Model\Vector2DInt;
 
-class Day6 extends AbstractSolver
+final class Day6 extends AbstractSolver
 {
     private Grid $grid;
     private Vector2DInt $initialPosition;

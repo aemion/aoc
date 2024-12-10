@@ -6,7 +6,7 @@ namespace App\Y2024;
 
 use App\AbstractSolver;
 
-class Day3 extends AbstractSolver
+final class Day3 extends AbstractSolver
 {
     private string $input = '';
 

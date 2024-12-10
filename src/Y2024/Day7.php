@@ -6,7 +6,7 @@ namespace App\Y2024;
 
 use App\AbstractSolver;
 
-class Day7 extends AbstractSolver
+final class Day7 extends AbstractSolver
 {
     private array $lines;
     private array $operations = [];
