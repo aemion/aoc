@@ -4,19 +4,21 @@ declare(strict_types=1);
 
 namespace App;
 
-use App\Y2024\Day1;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 use Symfony\Component\HttpKernel\KernelInterface;
 
 #[AsCommand('app:solve')]
 final class SolverCommand extends Command
 {
-    public function __construct(private readonly KernelInterface $kernel)
-    {
+    public function __construct(
+        private readonly KernelInterface $kernel,
+        #[TaggedIterator('app.solver')] private readonly iterable $solvers
+    ) {
         parent::__construct();
     }
 
@@ -29,7 +31,13 @@ final class SolverCommand extends Command
     public function execute(InputInterface $input, OutputInterface $output): int
     {
         $test = $input->getOption('test');
-        $solver = new Day1();
+        $solver = $this->getSolver($input);
+
+        if (null === $solver) {
+            $output->writeln('<error>No solver found</error>');
+
+            return Command::FAILURE;
+        }
 
         if ($test) {
             $this->test($solver, $output);
@@ -47,7 +55,33 @@ final class SolverCommand extends Command
         return Command::SUCCESS;
     }
 
-    private function test(Day1 $solver, OutputInterface $output): void
+    private function getSolver(InputInterface $input): ?AbstractSolver
+    {
+        $day = $input->getArgument('day');
+        if (null === $day) {
+            $day = (new \DateTimeImmutable())->format('d');
+        }
+
+        if (!is_numeric($day)) {
+            return null;
+        }
+
+        $day = (int) $day;
+        if ($day < 1 || $day > 25) {
+            return null;
+        }
+
+        $class = \sprintf('App\Y2024\Day%s', $day);
+        foreach ($this->solvers as $solver) {
+            if (\get_class($solver) === $class) {
+                return $solver;
+            }
+        }
+
+        return null;
+    }
+
+    private function test(AbstractSolver $solver, OutputInterface $output): void
     {
         $results = fopen($this->kernel->getProjectDir() . '/inputs/test/01_results.txt', 'rb');
         $expected = trim(fgets($results));
