@@ -16,8 +16,7 @@ final class Day4 extends AbstractSolver
 
     public function getOppositeVector(Vector2DInt $direction): Vector2DInt
     {
-        $rotationMatrix = new Matrix2DInt(-1, 0, 0, -1);
-        return $direction->multiplyMatrix2D($rotationMatrix);
+        return $direction->multiplyScalar(-1);
     }
 
     public function loadInput(string $path): void
