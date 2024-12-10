@@ -22,26 +22,22 @@ final class Day6 extends AbstractSolver
         $grid = [];
         $file = fopen($path, 'rb');
         $x = 0;
-        $y = 0;
+        $this->initialDirection = Direction::Top;
         while (!feof($file)) {
-            $character = fgetc($file);
-            if ($character === "\n" || $character === false) {
-                $x++;
-                $y = 0;
-                continue;
+            $line = trim(fgets($file));
+            $characters = str_split($line);
+            $guardIndex = array_search('^', $characters);
+
+            if ($guardIndex !== false) {
+                $this->initialPosition = new Vector2DInt($x, $guardIndex);
             }
 
-            if ($character === '^') {
-                $character = 'X';
-                $this->initialPosition = new Vector2DInt($x, $y);
-                $this->initialDirection = Direction::Top;
-            }
-
-            $grid[$x][$y] = $character;
-            $y++;
+            $grid[] = $characters;
+            $x++;
         }
 
         $this->grid = new Grid($grid);
+        $this->grid->setValue($this->initialPosition, 'X');
     }
 
     public function preSolve(): void
