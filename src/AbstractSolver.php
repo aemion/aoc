@@ -16,7 +16,7 @@ abstract class AbstractSolver
 
     public function getDay(): string
     {
-        $fqcn = self::class;
+        $fqcn = static::class;
         $splitFqcn = explode('\\', $fqcn);
 
         $className = array_pop($splitFqcn);
