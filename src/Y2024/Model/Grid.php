@@ -21,6 +21,11 @@ class Grid
         return $this->grid[$vector->x][$vector->y];
     }
 
+    public function tryGetValue(Vector2DInt $vector): ?string
+    {
+        return $this->grid[$vector->x][$vector->y] ?? null;
+    }
+
     public function setValue(Vector2DInt $vector, string $value): void
     {
         $this->grid[$vector->x][$vector->y] = $value;
