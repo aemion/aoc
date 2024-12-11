@@ -6,7 +6,7 @@ namespace App\Y2024\Model;
 
 interface NodeInterface
 {
-    public function getId(): string;
+    public function getId(): string|int;
 
     public function getEdges(): array;
 

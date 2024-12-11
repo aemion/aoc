@@ -16,7 +16,7 @@ class OrientedGraph
         $this->nodes[$node->getId()] = $node;
     }
 
-    public function getNode(string $id): ?NodeInterface
+    public function getNode(string|int $id): ?NodeInterface
     {
         return $this->nodes[$id] ?? null;
     }
