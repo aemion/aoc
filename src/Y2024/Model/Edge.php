@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Y2024\Model;
 
-class Day11Edge
+class Edge
 {
     private int $weight = 0;
 

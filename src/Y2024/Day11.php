@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace App\Y2024;
 
 use App\AbstractSolver;
-use App\Y2024\Model\Day11Edge;
-use App\Y2024\Model\Day11Node;
-use App\Y2024\Model\OrientedGraph;
 
 final class Day11 extends AbstractSolver
 {
     private array $stones = [];
 
-    private OrientedGraph $cachedStones;
+    private array $cachedStones = [];
 
     public function loadInput(string $path): void
     {
@@ -45,7 +42,6 @@ final class Day11 extends AbstractSolver
     public function secondStar(): string
     {
         $total = 0;
-        $this->cachedStones = new OrientedGraph();
 
         $stones = [];
         foreach ($this->stones as $stone) {
@@ -58,18 +54,11 @@ final class Day11 extends AbstractSolver
         for ($i = 0; $i < 75; $i++) {
             $nextStones = [];
             foreach ($stones as $stone => $count) {
-                $stoneNode = $this->cachedStones->getNode($stone);
-                if ($stoneNode === null) {
-                    $stoneNode = $this->prepareNextStones($stone);
-                }
-
-                $edges = $stoneNode->getEdges();
-                /** @var Day11Edge $edge */
-                foreach ($edges as $edge) {
-                    if (!isset($nextStones[$edge->getNodeTo()->getId()])) {
-                        $nextStones[$edge->getNodeTo()->getId()] = 0;
+                foreach ($this->getNextStones($stone) as $nextStone) {
+                    if (!isset($nextStones[$nextStone])) {
+                        $nextStones[$nextStone] = 0;
                     }
-                    $nextStones[$edge->getNodeTo()->getId()] += $count * $edge->getWeight();
+                    $nextStones[$nextStone] += $count;
                 }
             }
             $stones = $nextStones;
@@ -82,35 +71,29 @@ final class Day11 extends AbstractSolver
         return (string) $total;
     }
 
-    private function prepareNextStones(int $stone): Day11Node
-    {
-        $node = $this->cachedStones->getNode($stone);
-        if ($node === null) {
-            $node = new Day11Node($stone);
-            $this->cachedStones->addNode($node);
-            $nextStones = $this->getNextStones($stone);
-
-            foreach ($nextStones as $nextStone) {
-                $nextNode = $this->prepareNextStones($nextStone);
-                $this->cachedStones->addEdge($node, $nextNode);
-            }
-        }
-
-        return $node;
-    }
-
     private function getNextStones(int $stone): array
     {
+        if (isset($this->cachedStones[$stone])) {
+            return $this->cachedStones[$stone];
+        }
+
         if ($stone === 0) {
-            return [1];
+            $this->cachedStones[$stone] = [1];
+
+            return $this->cachedStones[$stone];
         }
 
         $stoneString = (string) $stone;
         $stoneLength = \strlen($stoneString);
         if ($stoneLength % 2 === 0) {
-            return array_map(static fn(string $a) => (int) $a, str_split($stoneString, $stoneLength / 2));
+            $this->cachedStones[$stone] = array_map(
+                static fn(string $a) => (int) $a,
+                str_split($stoneString, $stoneLength / 2)
+            );
+        } else {
+            $this->cachedStones[$stone] = [$stone * 2024];
         }
 
-        return [$stone * 2024];
+        return $this->cachedStones[$stone];
     }
 }
