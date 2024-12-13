@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 namespace App\Y2024\Model;
 
+/**
+ * @template T
+ */
 class Grid
 {
     private int $xMax;
     private int $yMax;
 
+    /**
+     * @param list<list<T>> $grid
+     */
     public function __construct(
         private array $grid,
     ) {
@@ -16,17 +22,26 @@ class Grid
         $this->yMax = \count($this->grid[0]);
     }
 
-    public function getValue(Vector2DInt $vector): string
+    /**
+     * @return T
+     */
+    public function getValue(Vector2DInt $vector): mixed
     {
         return $this->grid[$vector->x][$vector->y];
     }
 
-    public function tryGetValue(Vector2DInt $vector): ?string
+    /**
+     * @return T|null
+     */
+    public function tryGetValue(Vector2DInt $vector): mixed
     {
         return $this->grid[$vector->x][$vector->y] ?? null;
     }
 
-    public function setValue(Vector2DInt $vector, string $value): void
+    /**
+     * @param T $value
+     */
+    public function setValue(Vector2DInt $vector, mixed $value): void
     {
         $this->grid[$vector->x][$vector->y] = $value;
     }
@@ -37,7 +52,7 @@ class Grid
     }
 
     /**
-     * @return \Generator<Vector2DInt, string>
+     * @return \Generator<Vector2DInt, T>
      */
     public function getCells(): \Generator
     {
