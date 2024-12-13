@@ -17,6 +17,11 @@ final readonly class Vector2DInt implements \Stringable
         return new Vector2DInt($this->x * $a, $this->y * $a);
     }
 
+    public function scalarProduct(Vector2DInt $b): int
+    {
+        return $this->x * $b->x + $this->y * $b->y;
+    }
+
     public function multiplyMatrix2D(Matrix2DInt $matrix): Vector2DInt
     {
         return new Vector2DInt(
