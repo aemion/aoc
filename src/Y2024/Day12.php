@@ -17,7 +17,6 @@ final class Day12 extends AbstractSolver
      * @var Grid<Day12Cell>
      */
     private Grid $grid;
-    private static int $id = 0;
 
     public function loadInput(string $path): void
     {
@@ -130,62 +129,42 @@ final class Day12 extends AbstractSolver
 
         $plots = [];
         $rotationMatrix90 = new Matrix2DInt(0, 1, -1, 0);
+        $directions = Direction::cases();
+        /**  @var Day12Cell $cell */
         foreach ($this->grid->getCells() as $position => $cell) {
-            $direction = Direction::Right->getVector2D();
-            $start = $position;
-            $needToCountSides = false;
-            if (!isset($plots[$cell->id])) {
-                $plots[$cell->id] = ['area' => 0, 'sides' => 0, 'value' => $cell->value];
-                $needToCountSides = true;
-            }
-            $plots[$cell->id]['area']++;
+            foreach ($directions as $direction) {
+                $nextPositionInDirection = $position->addVector2D($direction->getVector2D());
+                $orthogonalDirection = $direction->getVector2D()->multiplyMatrix2D($rotationMatrix90);
+                $nextPositionInOrthogonalDirection = $position->addVector2D($orthogonalDirection);
 
-            $currentPosition = $start;
-            // $nextPosition = $start->addVector2D($direction);
+                $diagonalDirection = $direction->getVector2D()->addVector2D($orthogonalDirection);
+                $nextPositionInDiagonalDirection = $position->addVector2D($diagonalDirection);
 
-            if (!$needToCountSides) {
-                continue;
-            }
-            // $directionCount = 4;
-            $stop = false;
-            dump($start);
-            while (!$stop) {
-                // if ($directionCount === 0) {
-                //     die();
-                // }
-                $nextPosition = $currentPosition->addVector2D($direction);
-                $nextCell = $this->grid->tryGetValue($nextPosition);
-                if (null === $nextCell || $nextCell->value !== $cell->value) {
-                    if ($cell->id === 0) {
-                        // dump('ANGLE outside');
-                    }
-                    $direction = $direction->multiplyMatrix2D($rotationMatrix90);
-                    $plots[$cell->id]['sides']++;
-                    // $directionCount--;
-                } else {
-                    // $directionCount = 4;
-                    $currentPosition = $nextPosition;
-                    dump($currentPosition);
-                    // $nextPosition = $nextPosition->addVector2D($direction);
-                }
-
-                // if ($cell->id === 0) {
-                //     // dump($nextPosition->__toString());
-                //     dump($nextPosition->__toString());
-                // }
-                // // $nextCell->visited = true;
-                // if ($directionCount < 4) {
-                //     // $plots[$cell->id]['sides']++;
-                // }
-                if ($currentPosition->equals($start) && $direction->equals(Direction::Right->getVector2D())) {
-                    $stop = true;
-                }
-                if ($currentPosition->equals($start)) {
-                    dump($direction);
+                $value = $cell->value;
+                $nextValue = $this->grid->tryGetValue($nextPositionInDirection)?->value;
+                $nextOrthogonalValue = $this->grid->tryGetValue($nextPositionInOrthogonalDirection)?->value;
+                $nextDiagonalValue = $this->grid->tryGetValue($nextPositionInDiagonalDirection)?->value;
+                if ($nextValue !== $value && $nextOrthogonalValue !== $value) {
+                    $cell->addAngle($diagonalDirection);
+                } elseif ($nextValue === $value && $nextOrthogonalValue === $value && $nextDiagonalValue !== $value) {
+                    $cell->addAngle($diagonalDirection);
                 }
             }
         }
-        dump($plots);
+
+        foreach ($this->grid->getCells() as $cell) {
+            if (!isset($plots[$cell->id])) {
+                $plots[$cell->id] = ['area' => 0, 'perimeter' => 0, 'value' => $cell->value];
+            }
+
+            $plots[$cell->id]['area']++;
+            $plots[$cell->id]['perimeter'] += $cell->countAngles();
+        }
+
+        $total = 0;
+        foreach ($plots as $plot) {
+            $total += $plot['area'] * $plot['perimeter'];
+        }
 
         return (string) $total;
     }
