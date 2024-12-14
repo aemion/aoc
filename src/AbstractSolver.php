@@ -4,11 +4,19 @@ declare(strict_types=1);
 
 namespace App;
 
+use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 #[AutoconfigureTag('app.solver')]
 abstract class AbstractSolver
 {
+    protected ConsoleOutputInterface $output;
+
+    public function setOutput(ConsoleOutputInterface $output): void
+    {
+        $this->output = $output;
+    }
+
     public function isFirstStarSolved(): bool
     {
         return false;

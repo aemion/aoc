@@ -37,7 +37,7 @@ final class SolverCommand extends Command
     public function execute(InputInterface $input, OutputInterface $output): int
     {
         $test = $input->getOption('test');
-        $solver = $this->getSolver($input);
+        $solver = $this->getSolver($input, $output);
 
         if (null === $solver) {
             $output->writeln('<error>No solver found</error>');
@@ -61,7 +61,7 @@ final class SolverCommand extends Command
         return Command::SUCCESS;
     }
 
-    private function getSolver(InputInterface $input): ?AbstractSolver
+    private function getSolver(InputInterface $input, OutputInterface $output): ?AbstractSolver
     {
         $day = $input->getArgument('day');
         if (null === $day) {
@@ -80,6 +80,8 @@ final class SolverCommand extends Command
         $class = \sprintf('App\Y2024\Day%s', $day);
         foreach ($this->solvers as $solver) {
             if (\get_class($solver) === $class) {
+                $solver->setOutput($output);
+
                 return $solver;
             }
         }
