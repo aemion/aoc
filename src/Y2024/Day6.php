@@ -26,7 +26,7 @@ final class Day6 extends AbstractSolver
         while (!feof($file)) {
             $line = trim(fgets($file));
             $characters = str_split($line);
-            $guardIndex = array_search('^', $characters);
+            $guardIndex = array_search('^', $characters, true);
 
             if ($guardIndex !== false) {
                 $this->initialPosition = new Vector2DInt($x, $guardIndex);
