@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App;
 
-use Symfony\Component\Console\Output\ConsoleOutputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 #[AutoconfigureTag('app.solver')]
 abstract class AbstractSolver
 {
-    protected ConsoleOutputInterface $output;
+    protected OutputInterface $output;
 
-    public function setOutput(ConsoleOutputInterface $output): void
+    public function setOutput(OutputInterface $output): void
     {
         $this->output = $output;
     }

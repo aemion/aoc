@@ -6,14 +6,12 @@ namespace App\Y2024;
 
 use App\AbstractSolver;
 use App\Y2024\Model\Vector2DInt;
-use Symfony\Component\Console\Output\ConsoleSectionOutput;
 
 final class Day14 extends AbstractSolver
 {
     private int $xMax;
     private int $yMax;
     private array $initialRobots;
-    private ?ConsoleSectionOutput $section = null;
 
     // To load correctly, add in the input the width and height of the grid in the first line
 
@@ -100,10 +98,10 @@ final class Day14 extends AbstractSolver
 
     public function secondStar(): string
     {
-        $this->print(0, $this->initialRobots);
         $robots = $this->initialRobots;
         // How to find a christmas tree...?
-        for ($i = 0; $i < 100; $i++) {
+        $result = 0;
+        for ($i = 0; $i < $this->xMax * $this->yMax; $i++) {
             $nextRobots = [];
             foreach ($robots as $robot) {
                 /** @var Vector2DInt $notWrappedPosition */
@@ -115,19 +113,53 @@ final class Day14 extends AbstractSolver
                 $nextRobots[] = ['position' => $finalPosition, 'velocity' => $robot['velocity']];
             }
             $robots = $nextRobots;
-            $this->print($i + 1, $robots);
-            usleep(500000);
+            if ($this->canBeChristmasTree($robots)) {
+                $result = $i + 1;
+                break;
+            }
+        }
+        $this->print($result, $robots);
+
+        return (string) $result;
+    }
+
+    public function canBeChristmasTree(array $robots): bool
+    {
+        $countByX = [];
+        $countByY = [];
+        foreach ($robots as $robot) {
+            /** @var Vector2DInt $position */
+            $position = $robot['position'];
+            if (!isset($countByX[$position->x])) {
+                $countByX[$position->x] = 0;
+            }
+            if (!isset($countByY[$position->y])) {
+                $countByY[$position->y] = 0;
+            }
+
+            $countByX[$position->x]++;
+            $countByY[$position->y]++;
         }
 
-        return 'NA';
+        $possibleX = false;
+        foreach ($countByX as $count) {
+            if ($count > 20) {
+                $possibleX = true;
+            }
+        }
+
+        $possibleY = false;
+        foreach ($countByY as $count) {
+            if ($count > 20) {
+                $possibleY = true;
+            }
+        }
+
+        return $possibleX && $possibleY;
     }
 
     public function print(int $numberOfSeconds, array $robots): void
     {
-        if ($this->section === null) {
-            $this->section = $this->output->section();
-        }
-        $this->section->clear();
         $lines = [];
         for ($j = 0; $j < $this->yMax; $j++) {
             $lines[] = array_fill(0, $this->xMax, '.');
@@ -139,10 +171,10 @@ final class Day14 extends AbstractSolver
             $lines[$position->y][$position->x] = 'X';
         }
 
-        $this->section->writeln('Seconds: ' . $numberOfSeconds);
+        $this->output->writeln('Seconds: ' . $numberOfSeconds);
 
         foreach ($lines as $line) {
-            $this->section->writeln(implode('', $line));
+            $this->output->writeln(implode('', $line));
         }
     }
 }
