@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Y2024\Model;
 
+use Symfony\Component\Console\Output\OutputInterface;
+
 /**
  * @template T
  */
@@ -60,6 +62,18 @@ class Grid
             foreach ($line as $y => $value) {
                 yield new Vector2DInt($x, $y) => $value;
             }
+        }
+    }
+
+    public function toArray(): array
+    {
+        return $this->grid;
+    }
+
+    public function print(OutputInterface $output): void
+    {
+        foreach ($this->grid as $line) {
+            $output->writeln(implode('', $line));
         }
     }
 }
