@@ -6,16 +6,10 @@ namespace App\Y2024\Model;
 
 class Edge
 {
-    private int $weight = 0;
-
     public function __construct(
-        private readonly NodeInterface $nodeTo
+        private readonly NodeInterface $nodeTo,
+        private int $weight = 0
     ) {
-    }
-
-    public function incrementWeight(): void
-    {
-        $this->weight++;
     }
 
     public function getNodeTo(): NodeInterface

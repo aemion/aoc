@@ -34,7 +34,7 @@ class Day10Node implements NodeInterface
         return $this->edges;
     }
 
-    public function addEdge(NodeInterface $to): void
+    public function addEdge(NodeInterface $to, int $weight = 0): void
     {
         if ($to->getId() === $this->id) {
             throw new \Exception('Cannot add an edge to same node');
@@ -85,5 +85,10 @@ class Day10Node implements NodeInterface
     public function getScore(): ?int
     {
         return \count($this->foundNines);
+    }
+
+    public function getEdge(NodeInterface $to): Edge
+    {
+        throw new \RuntimeException('Not implemented');
     }
 }

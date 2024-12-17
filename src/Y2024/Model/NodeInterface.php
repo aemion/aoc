@@ -8,7 +8,12 @@ interface NodeInterface
 {
     public function getId(): string|int;
 
+    /**
+     * @return list<Edge>
+     */
     public function getEdges(): array;
 
-    public function addEdge(NodeInterface $to): void;
+    public function addEdge(NodeInterface $to, int $weight = 0): void;
+
+    public function getEdge(NodeInterface $to): Edge;
 }

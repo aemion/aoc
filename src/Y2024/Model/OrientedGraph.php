@@ -21,9 +21,9 @@ class OrientedGraph
         return $this->nodes[$id] ?? null;
     }
 
-    public function addEdge(NodeInterface $from, NodeInterface $to): void
+    public function addEdge(NodeInterface $from, NodeInterface $to, int $weight = 0): void
     {
-        $from->addEdge($to);
+        $from->addEdge($to, $weight);
     }
 
     public function getNodes(): array
