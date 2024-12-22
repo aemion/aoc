@@ -55,35 +55,12 @@ final class Day22 extends AbstractSolver
             $bananaInfo[] = ['diff' => $diff, 'numbers' => $numbers];
         }
 
-        $bananaTrees = $this->buildBananaTrees($bananaInfo);
-
-        // There's probably a better way to do it
-        $uniqueSequences = [];
-        for ($a = -9; $a <= 9; $a++) {
-            for ($b = -9; $b <= 9; $b++) {
-                for ($c = -9; $c <= 9; $c++) {
-                    for ($d = -9; $d <= 9; $d++) {
-                        $uniqueSequences[] = [$a, $b, $c, $d];
-                    }
-                }
-            }
-        }
-
-        $max = 0;
-        // OPTIMIZATION NEEDED
-        foreach ($uniqueSequences as $uniqueSequence) {
-            $bananas = $this->calculateBananasForSequenceFromTree($bananaTrees, $uniqueSequence, $max);
-            if ($bananas['total'] > $max) {
-                $max = $bananas['total'];
-            }
-        }
-
-        return (string) $max;
+        return (string) $this->getMax($bananaInfo);
     }
 
-    private function buildBananaTrees(array $bananaInfo): array
+    private function getMax(array $bananaInfo): int
     {
-        $bananaTrees = [];
+        $totals = [];
         foreach ($bananaInfo as $bananaDiffAndNumbers) {
             $numbers = $bananaDiffAndNumbers['numbers'];
             $bananaTree = [];
@@ -98,50 +75,15 @@ final class Day22 extends AbstractSolver
                 }
 
                 $bananaTree[$a][$b][$c][$d] = $numbers[$i];
-            }
-            $bananaTrees[] = $bananaTree;
-        }
-
-        return $bananaTrees;
-    }
-
-    private function calculateBananasForSequenceFromTree(array $bananaTrees, array $sequence, int $currentMax): array
-    {
-        $total = 0;
-        $bananasByMonkey = [];
-        $potential = 2000 * 9;
-        foreach ($bananaTrees as $bananaTree) {
-            $bananas = $bananaTree[$sequence[0]][$sequence[1]][$sequence[2]][$sequence[3]] ?? 0;
-            $bananasByMonkey[] = $bananas;
-            $total += $bananas;
-            // Small optimization -> Check for remaining potential
-            $removedPotential = (9 - $bananas);
-            $potential -= $removedPotential;
-            if ($potential < $currentMax) {
-                break;
+                $id = implode('|', [$a, $b, $c, $d]);
+                if (!isset($totals[$id])) {
+                    $totals[$id] = 0;
+                }
+                $totals[$id] += $numbers[$i];
             }
         }
 
-        return ['bananas' => $bananasByMonkey, 'total' => $total];
-    }
-
-    private function calculateBananasForSequence(array $bananaInfo, array $sequence, int $currentMax): array
-    {
-        $bananasByMonkey = [];
-        $potential = 2000 * 9;
-        foreach ($bananaInfo as $bananaDiffAndNumbers) {
-            $bananas = $this->getBananas($bananaDiffAndNumbers, $sequence);
-            $bananasByMonkey[] = $bananas;
-            $total += $bananas;
-            // Small optimization -> Check for remaining potential
-            $removedPotential = (9 - $bananas);
-            $potential -= $removedPotential;
-            if ($potential < $currentMax) {
-                break;
-            }
-        }
-
-        return ['bananas' => $bananasByMonkey, 'total' => $total];
+        return max($totals);
     }
 
     private function nextSecret(int $secret): int
