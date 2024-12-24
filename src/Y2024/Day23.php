@@ -83,12 +83,19 @@ final class Day23 extends AbstractSolver
         $maxSize = 0;
         $computersInNetwork = [];
         $vertices = $this->network->getVertices();
+
+        $initialP = [];
         /** @var Vertex $vertex */
         foreach ($vertices as $vertex) {
-            $group = $this->findBiggestGroupIncludingVertices([$vertex]);
-            if (\count($group) > $maxSize) {
-                $maxSize = \count($group);
-                $computersInNetwork = $group;
+            $initialP[$vertex->getId()] = $vertex;
+        }
+
+        $this->bronKerbosch([], $initialP, []);
+
+        foreach ($this->maximalCliques as $clique) {
+            if (\count($clique) > $maxSize) {
+                $maxSize = \count($clique);
+                $computersInNetwork = $clique;
             }
         }
 
@@ -102,99 +109,33 @@ final class Day23 extends AbstractSolver
         return implode(',', $result);
     }
 
-    private function findBiggestGroupIncludingVertices(array $vertices): array
+    private array $maximalCliques = [];
+
+    private function bronKerbosch(array $r, array $p, array $x): void
     {
-        $keyCache = $this->buildCacheKey($vertices, 'group');
-        if (isset($this->cache[$keyCache])) {
-            return $this->cache[$keyCache];
+        if (empty($p) && empty($x)) {
+            $this->maximalCliques[] = $r;
         }
 
-        $connectedVertices = $this->findVerticesConnectedTo($vertices);
-        if (empty($connectedVertices)) {
-            $this->cache[$keyCache] = $vertices;
-
-            return $vertices;
-        }
-
-        if (\count($connectedVertices) === 1) {
-            $vertices[] = $connectedVertices[0];
-
-            $this->cache[$keyCache] = $this->findBiggestGroupIncludingVertices($vertices);
-
-            return $this->cache[$keyCache];
-        }
-
-        $maxSize = \count($vertices);
-        $biggestGroup = $vertices;
-        foreach ($connectedVertices as $vertex) {
-            $group = $this->findBiggestGroupIncludingVertices([...$vertices, $vertex]);
-            if (\count($group) > $maxSize) {
-                $biggestGroup = $group;
-                $maxSize = \count($group);
+        /** @var Vertex $vertex */
+        foreach ($p as $vertex) {
+            $neighbours = $vertex->getVerticesEdge();
+            $indexedNeighbours = [];
+            foreach ($neighbours as $neighbour) {
+                $indexedNeighbours[$neighbour->getId()] = $neighbour;
             }
+            $this->bronKerbosch(
+                [...$r, $vertex],
+                array_uintersect_assoc($p, $indexedNeighbours, $this->compareVertices(...)),
+                array_uintersect_assoc($x, $indexedNeighbours, $this->compareVertices(...))
+            );
+            unset($p[$vertex->getId()]);
+            $x[$vertex->getId()] = $vertex;
         }
-
-        $this->cache[$keyCache] = $biggestGroup;
-
-        return $this->cache[$keyCache];
     }
 
-    /**
-     * @param list<Vertex> $vertices
-     *
-     * @return list<Vertex>
-     */
-    private function findVerticesConnectedTo(array $vertices): array
+    private function compareVertices(Vertex $a, Vertex $b): int
     {
-        $keyCache = $this->buildCacheKey($vertices, 'connection');
-
-        if (isset($this->cache[$keyCache])) {
-            return $this->cache[$keyCache];
-        }
-        // On suppose que les verices sont déjà connectées
-        $verticesIds = [];
-        foreach ($vertices as $vertex) {
-            $verticesIds[] = $vertex->getId();
-        }
-        $potentialVertices = [];
-        foreach ($vertices as $vertex) {
-            $adjacentVertices = $vertex->getVerticesEdge()->getVerticesDistinct();
-            foreach ($adjacentVertices as $potentialVertex) {
-                if (\in_array($potentialVertex->getId(), $verticesIds, true)) {
-                    continue;
-                }
-
-                if ($vertex->hasEdgeTo($potentialVertex)) {
-                    if (!isset($potentialVertices[$potentialVertex->getId()])) {
-                        $potentialVertices[$potentialVertex->getId()] = ['count' => 0, 'vertex' => $potentialVertex];
-                    }
-
-                    $potentialVertices[$potentialVertex->getId()]['count']++;
-                }
-            }
-        }
-
-        $numberOfVertices = \count($vertices);
-        $result = [];
-        foreach ($potentialVertices as $potentialVertex) {
-            if ($potentialVertex['count'] === $numberOfVertices) {
-                $result[] = $potentialVertex['vertex'];
-            }
-        }
-
-        $this->cache[$keyCache] = $result;
-
-        return $this->cache[$keyCache];
-    }
-
-    private function buildCacheKey(array $vertices, string $namespace): string
-    {
-        $ids = [];
-        foreach ($vertices as $vertex) {
-            $ids[] = $vertex->getId();
-        }
-        sort($ids);
-
-        return $namespace . '_' . implode(',', $ids);
+        return strcmp($a->getId(), $b->getId());
     }
 }
