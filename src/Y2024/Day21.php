@@ -20,7 +20,7 @@ final class Day21 extends AbstractSolver
      */
     private array $keypads = [];
 
-    private array $revertKeypads = [];
+    private array $cache = [];
 
     public function loadInput(string $path): void
     {
@@ -103,6 +103,10 @@ final class Day21 extends AbstractSolver
 
     private function getRobotInstructions(string $code, array $keypad): string
     {
+        if (isset($this->cache[$code])) {
+            return $this->cache[$code];
+        }
+
         $key = 'A';
         $path = '';
         foreach (str_split($code) as $character) {
@@ -110,20 +114,14 @@ final class Day21 extends AbstractSolver
             $key = $character;
         }
 
-        return $path;
+        $this->cache[$code] = $path;
+
+        return $this->cache[$code];
     }
 
     public function firstStar(): string
     {
         $total = 0;
-        // $solutions = [
-        //     '029A' => '<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A',
-        //     '980A' => '<v<A>>^AAAvA^A<vA<AA>>^AvAA<^A>A<v<A>A>^AAAvA<^A>A<vA>^A<A>A',
-        //     '179A' => '<v<A>>^A<vA<A>>^AAvAA<^A>A<v<A>>^AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A',
-        //     '456A' => '<v<A>>^AA<vA<A>>^AAvAA<^A>A<vA>^A<A>A<vA>^A<A>A<v<A>A>^AAvA<^A>A',
-        //     '379A' => '<v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A',
-        // ];
-        // dump($this->revertCode($solutions['029A']));
 
         foreach ($this->codes as $code) {
             $robot1 = $this->getRobotInstructions($code, $this->keypads['num']);
@@ -136,52 +134,48 @@ final class Day21 extends AbstractSolver
         return (string) $total;
     }
 
-    public function revertCode(string $code): array
-    {
-        $oneKeypad = $this->revertString($this->revertKeypads['dir'], $code);
-        $twoKeypad = $this->revertString($this->revertKeypads['dir'], $oneKeypad);
-        $numKeypad = $this->revertString($this->revertKeypads['num'], $twoKeypad);
-
-        return [$code, $oneKeypad, $twoKeypad, $numKeypad];
-    }
-
-    public function revertString(array $keypad, string $string): string
-    {
-        /** @var Vector2DInt $position */
-        $position = $keypad['initialPosition'];
-        $chars = str_split($string);
-        $next = [];
-        foreach ($chars as $char) {
-            if ($char === ' ') {
-                continue;
-            }
-            if ($char === 'A') {
-                $next[] = $keypad[$position->__toString()]; // TODO revert keypad
-            } else {
-                $position = $position->addVector2D($this->charToDirection($char)->getVector2D());
-            }
-
-            if (!isset($keypad[$position->__toString()])) {
-                dump('ERROR!!! ' . $position);
-            }
-        }
-
-        return implode('', $next);
-    }
-
-    private function charToDirection(string $char): Direction
-    {
-        return match ($char) {
-            '>' => Direction::Right,
-            '<' => Direction::Left,
-            '^' => Direction::Top,
-            'v' => Direction::Bottom,
-        };
-    }
-
     public function secondStar(): string
     {
         $total = 0;
+
+        foreach ($this->codes as $code) {
+            $robot1 = $this->getRobotInstructions($code, $this->keypads['num']);
+            $sequences = explode('A', $robot1);
+            array_pop($sequences);
+            $counts = [];
+            foreach ($sequences as $sequence) {
+                $sequence .= 'A';
+                if (!isset($counts[$sequence])) {
+                    $counts[$sequence] = 0;
+                }
+                $counts[$sequence]++;
+            }
+
+            for ($i = 0; $i < 25; $i++) {
+                $next = [];
+                foreach ($counts as $sequence => $count) {
+                    $robot = $this->getRobotInstructions($sequence, $this->keypads['dir']);
+                    $nextSequences = explode('A', $robot);
+                    array_pop($nextSequences);
+                    foreach ($nextSequences as $nextSequence) {
+                        $nextSequence .= 'A';
+                        if (!isset($next[$nextSequence])) {
+                            $next[$nextSequence] = 0;
+                        }
+                        $next[$nextSequence] += $count;
+                    }
+                }
+                $counts = $next;
+            }
+
+            $length = 0;
+            foreach ($counts as $sequence => $count) {
+                $length += \strlen($sequence) * $count;
+            }
+            $codeValue = (int) str_replace('A', '', $code);
+
+            $total += $length * $codeValue;
+        }
 
         return (string) $total;
     }
