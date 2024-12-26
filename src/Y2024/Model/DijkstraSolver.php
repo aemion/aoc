@@ -4,88 +4,111 @@ declare(strict_types=1);
 
 namespace App\Y2024\Model;
 
+use Fhaculty\Graph\Edge\Base;
+use Fhaculty\Graph\Graph;
+use Fhaculty\Graph\Vertex;
+
 class DijkstraSolver
 {
     private array $distances;
 
     private array $predecessors;
 
+    private array $visited;
+    private array $alternatePaths;
+
     // TODO should be constructor params
-    public function solve(OrientedGraph $graph, NodeInterface $startNode): void
+    public function solve(Graph $graph, Vertex $start): void
     {
-        $this->init($graph, $startNode);
+        $this->init($graph, $start);
+        $queue = new \SplPriorityQueue();
+        $queue->insert($start, 0);
 
-        $remainingNodes = $graph->getNodes();
-        while (!empty($remainingNodes)) {
-            if (count($remainingNodes) % 1000 === 0) {
-                dump(count($remainingNodes));
+        while (!$queue->isEmpty()) {
+            /** @var Vertex $vertex */
+            $vertex = $queue->extract();
+
+            if ($this->visited[$vertex->getId()]) {
+                continue;
             }
-            $closestNode = $this->findMin($remainingNodes);
-            $remainingNodes = array_filter(
-                $remainingNodes,
-                static fn(NodeInterface $node) => $node->getId() !== $closestNode->getId()
-            );
 
-            foreach ($closestNode->getEdges() as $edge) {
-                $this->updateDistances($closestNode, $edge->getNodeTo());
+            $this->visited[$vertex->getId()] = true;
+            /** @var Base $edge */
+            foreach ($vertex->getEdgesOut() as $edge) {
+                $toVertex = $edge->getVertexToFrom($vertex);
+                if (!$this->visited[$toVertex->getId()]) {
+                    $distance = $this->distances[$vertex->getId()] + $edge->getWeight();
+                    if ($distance < $this->distances[$toVertex->getId()]) {
+                        $this->predecessors[$toVertex->getId()] = $vertex;
+                        $this->distances[$toVertex->getId()] = $distance;
+                        $queue->insert($toVertex, -$distance);
+                    } elseif ($distance === $this->distances[$toVertex->getId()]) {
+                        if (!isset($this->alternatePaths[$toVertex->getId()])) {
+                            $this->alternatePaths[$toVertex->getId()] = [];
+                        }
+                        $this->alternatePaths[$toVertex->getId()][] = $vertex;
+                    }
+                }
             }
         }
     }
 
-    public function findShortestPath(NodeInterface $startNode, NodeInterface $endNode): array
+    public function getAllPossibleVertices(Vertex $start, Vertex $end): array
     {
+        $shortest = $this->findShortestPath($start, $end);
         $result = [];
-        $node = $endNode;
-        while ($node->getId() !== $startNode->getId()) {
-            array_unshift($result, $node);
-            $node = $this->predecessors[$node->getId()];
+        $visited = [];
+        $queue = new \SplQueue();
+        foreach ($shortest as $vertex) {
+            $queue->enqueue($vertex);
+            $visited[$vertex->getId()] = true;
         }
-        array_unshift($result, $startNode);
+        while (!$queue->isEmpty()) {
+            $vertex = $queue->dequeue();
+            $result[] = $vertex;
+            $alternatives = $this->alternatePaths[$vertex->getId()] ?? [];
+            foreach ($alternatives as $alternative) {
+                if (!isset($visited[$alternative->getId()])) {
+                    $visited[$alternative->getId()] = true;
+                    $queue->enqueue($alternative);
+                }
+
+                $otherPath = $this->findShortestPath($start, $alternative);
+                foreach ($otherPath as $vertex) {
+                    if (!isset($visited[$vertex->getId()])) {
+                        $visited[$vertex->getId()] = true;
+                        $queue->enqueue($vertex);
+                    }
+                }
+            }
+        }
 
         return $result;
     }
 
-    private function init(OrientedGraph $graph, NodeInterface $startNode): void
+    public function findShortestPath(Vertex $start, Vertex $end): array
+    {
+        $result = [];
+        $vertex = $end;
+        while ($vertex->getId() !== $start->getId()) {
+            array_unshift($result, $vertex);
+            $vertex = $this->predecessors[$vertex->getId()];
+        }
+        array_unshift($result, $start);
+
+        return $result;
+    }
+
+    private function init(Graph $graph, Vertex $start): void
     {
         $this->distances = [];
-        foreach ($graph->getNodes() as $node) {
-            $this->distances[$node->getId()] = INF;
+        foreach ($graph->getVertices() as $vertex) {
+            $this->distances[$vertex->getId()] = INF;
+            $this->visited[$vertex->getId()] = false;
         }
 
-        $this->distances[$startNode->getId()] = 0;
+        $this->distances[$start->getId()] = 0;
         $this->predecessors = [];
-    }
-
-    private function updateDistances(NodeInterface $a, NodeInterface $b): void
-    {
-        $newPotentialDistance = $this->distances[$a->getId()] + $a->getEdge($b)->getWeight();
-        if ($this->distances[$b->getId()] > $newPotentialDistance) {
-            $this->distances[$b->getId()] = $newPotentialDistance;
-            $this->predecessors[$b->getId()] = $a;
-        }
-    }
-
-    private function findMin(array $outsideNodes): NodeInterface
-    {
-        $min = INF;
-        $minNode = null;
-        foreach ($outsideNodes as $node) {
-            if ($this->distances[$node->getId()] < $min) {
-                $min = $this->distances[$node->getId()];
-                $minNode = $node;
-            }
-        }
-
-        if ($minNode === null) {
-            throw new \Exception('CANNOT FIND MIN NODE');
-        }
-
-        return $minNode;
-    }
-
-    public function getPredecessors(): array
-    {
-        return $this->predecessors;
     }
 
     public function getDistances(): array

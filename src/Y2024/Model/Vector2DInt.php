@@ -12,6 +12,15 @@ final readonly class Vector2DInt implements \Stringable
     ) {
     }
 
+    public function getOrthogonalVectors(): array
+    {
+        $rotationMatrix90 = new Matrix2DInt(0, 1, -1, 0);
+        $orthogonalVectors = [$this->multiplyMatrix2D($rotationMatrix90)];
+        $orthogonalVectors[] = $orthogonalVectors[0]->multiplyScalar(-1);
+
+        return $orthogonalVectors;
+    }
+
     public function multiplyScalar(int $a): Vector2DInt
     {
         return new Vector2DInt($this->x * $a, $this->y * $a);

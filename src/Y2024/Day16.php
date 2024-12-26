@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace App\Y2024;
 
 use App\AbstractSolver;
-use App\Y2024\Model\Day16Node;
 use App\Y2024\Model\DijkstraSolver;
 use App\Y2024\Model\Direction;
 use App\Y2024\Model\Grid;
-use App\Y2024\Model\Matrix2DInt;
-use App\Y2024\Model\NodeInterface;
-use App\Y2024\Model\OrientedGraph;
 use App\Y2024\Model\Vector2DInt;
+use Fhaculty\Graph\Graph;
+use Fhaculty\Graph\Vertex;
 
 final class Day16 extends AbstractSolver
 {
@@ -20,10 +18,10 @@ final class Day16 extends AbstractSolver
     private Vector2DInt $start;
     private Vector2DInt $end;
 
-    private DijkstraSolver $solver;
+    private Vertex $endNode;
+    private Vertex $startNode;
 
-    private NodeInterface $startNode;
-    private NodeInterface $endNode;
+    private DijkstraSolver $solver;
 
     public function loadInput(string $path): void
     {
@@ -53,89 +51,56 @@ final class Day16 extends AbstractSolver
 
     public function preSolve(): void
     {
-        $graph = new OrientedGraph();
+        $graph = new Graph();
         $directions = Direction::vectors();
-        $rotationMatrix90 = new Matrix2DInt(0, 1, -1, 0);
         foreach ($this->grid->getCells() as $position => $value) {
             if ($value === '#') {
                 continue;
             }
 
-            $possibleDirections = [];
             foreach ($directions as $direction) {
                 $nextPosition = $position->addVector2D($direction);
 
                 if ($this->grid->getValue($nextPosition) === '#') {
                     continue;
                 }
-                $possibleDirections[] = $direction;
                 $nextNodeId = $this->getNodeId($nextPosition, $direction);
                 $currentNodeId = $this->getNodeId($position, $direction);
-                $currentNode = $graph->getNode($currentNodeId);
-                if ($currentNode === null) {
-                    $currentNode = new Day16Node($currentNodeId);
-                    $graph->addNode($currentNode);
-                }
-                $nextNode = $graph->getNode($nextNodeId);
-                if ($nextNode === null) {
-                    $nextNode = new Day16Node($nextNodeId);
-                    $graph->addNode($nextNode);
-                }
 
-                $graph->addEdge($currentNode, $nextNode, 1);
+                $currentNode = $graph->createVertex($currentNodeId, true);
+                $nextNode = $graph->createVertex($nextNodeId, true);
+                $edge = $currentNode->createEdgeTo($nextNode);
+                $edge->setWeight(1);
             }
-            // dump($position, $possibleDirections);
-
-            // if (\count($possibleDirections) > 2
-            //     || !$possibleDirections[0]->equals($possibleDirections[1]->multiplyScalar(-1))) {
             foreach ($directions as $direction) {
-                $orthogonalDirections = [$direction->multiplyMatrix2D($rotationMatrix90)];
-                $orthogonalDirections[] = $orthogonalDirections[0]->multiplyScalar(-1);
+                $orthogonalDirections = $direction->getOrthogonalVectors();
                 foreach ($orthogonalDirections as $orthogonalDirection) {
                     $nextNodeId = $this->getNodeId($position, $orthogonalDirection);
                     $currentNodeId = $this->getNodeId($position, $direction);
-                    $currentNode = $graph->getNode($currentNodeId);
-                    if ($currentNode === null) {
-                        $currentNode = new Day16Node($currentNodeId);
-                        $graph->addNode($currentNode);
-                    }
-                    $nextNode = $graph->getNode($nextNodeId);
-                    if ($nextNode === null) {
-                        $nextNode = new Day16Node($nextNodeId);
-                        $graph->addNode($nextNode);
-                    }
-                    $graph->addEdge($currentNode, $nextNode, 1000);
+                    $currentNode = $graph->createVertex($currentNodeId, true);
+                    $nextNode = $graph->createVertex($nextNodeId, true);
+                    $edge = $currentNode->createEdgeTo($nextNode);
+                    $edge->setWeight(1000);
                 }
-                // }
             }
         }
 
-        $endNode = new Day16Node('END');
-        $graph->addNode($endNode);
+        $endNode = $graph->createVertex('END');
         foreach ($directions as $direction) {
             $nodeId = $this->getNodeId($this->end, $direction);
-            $node = $graph->getNode($nodeId);
-            if ($node === null) {
-                $node = new Day16Node($nodeId);
-                $graph->addNode($node);
-            }
+            $node = $graph->createVertex($nodeId, true);
 
-            $graph->addEdge($node, $endNode, 0);
+            $edge = $node->createEdgeTo($endNode);
+            $edge->setWeight(0);
 
             $nodeId = $this->getNodeId($this->start, $direction);
-            $node = $graph->getNode($nodeId);
-            if ($node === null) {
-                $node = new Day16Node($nodeId);
-                $graph->addNode($node);
-            }
+            $graph->createVertex($nodeId, true);
         }
 
-        $this->startNode = $graph->getNode($this->getNodeId($this->start, Direction::Right->getVector2D()));
-        $this->endNode = $graph->getNode('END');
-        if ($this->startNode === null || $this->endNode === null) {
-            throw new \RuntimeException('Start or end node not found');
-        }
+        $this->startNode = $graph->getVertex($this->getNodeId($this->start, Direction::Right->getVector2D()));
+        $this->endNode = $graph->getVertex('END');
         $this->solver = new DijkstraSolver();
+
         $this->solver->solve($graph, $this->startNode);
     }
 
@@ -158,13 +123,15 @@ final class Day16 extends AbstractSolver
 
     public function secondStar(): string
     {
-        $path = $this->solver->findShortestPath($this->startNode, $this->endNode);
-
-        // Compte les angles et ne prend en compte qu'un seul des chemins le plus court donc ca va pas...
-        foreach ($path as $node) {
-            dump($node->getId());
+        $cells = [];
+        $vertices = $this->solver->getAllPossibleVertices($this->startNode, $this->endNode);
+        foreach ($vertices as $vertex) {
+            [$cell] = explode('|', $vertex->getId());
+            $cells[] = $cell;
         }
 
-        return (string) \count($path);
+        $uniqueCells = array_unique($cells);
+
+        return (string) (\count($uniqueCells) - 1);
     }
 }
