@@ -76,4 +76,14 @@ class Grid
             $output->writeln(implode('', $line));
         }
     }
+
+    public function getXMax(): int
+    {
+        return $this->xMax;
+    }
+
+    public function getYMax(): int
+    {
+        return $this->yMax;
+    }
 }

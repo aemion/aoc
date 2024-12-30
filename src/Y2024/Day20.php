@@ -8,15 +8,13 @@ use App\AbstractSolver;
 use App\Y2024\Model\Direction;
 use App\Y2024\Model\Grid;
 use App\Y2024\Model\Vector2DInt;
-use Fhaculty\Graph\Graph;
-use Graphp\Algorithms\ShortestPath\BreadthFirst;
 
 final class Day20 extends AbstractSolver
 {
     private Grid $grid;
     private Vector2DInt $start;
     private Vector2DInt $end;
-    private Graph $graph;
+    private array $path;
 
     public function loadInput(string $path): void
     {
@@ -45,59 +43,41 @@ final class Day20 extends AbstractSolver
 
     public function isFirstStarSolved(): bool
     {
-        return false;
+        return true;
     }
 
     public function preSolve(): void
     {
-        $this->graph = $this->createGraph();
-    }
-
-    private function createGraph(): Graph
-    {
-        $graph = new Graph();
-        foreach ($this->grid->getCells() as $position => $cell) {
-            $graph->createVertex($position->__toString());
-        }
-
-        $directions = Direction::vectors();
-        foreach ($this->grid->getCells() as $position => $value) {
-            if ($value === '#') {
+        $direction = Direction::Top->getVector2D();
+        $position = $this->start;
+        $this->path = [$position->__toString() => ['position' => $position, 'index' => 0]];
+        $i = 1;
+        while (!$position->equals($this->end)) {
+            $nextPosition = $position->addVector2D($direction);
+            $nextValue = $this->grid->getValue($nextPosition);
+            if ($nextValue === '#') {
+                // Change direction
+                foreach ($direction->getOrthogonalVectors() as $nextDirection) {
+                    if ($this->grid->getValue($position->addVector2D($nextDirection)) !== '#') {
+                        $direction = $nextDirection;
+                        break;
+                    }
+                }
                 continue;
             }
-            $vertex = $graph->createVertex($position->__toString(), true);
-            $vertex->setAttribute('position', $position);
-            foreach ($directions as $direction) {
-                $nextPosition = $position->addVector2D($direction);
 
-                if ($this->grid->getValue($nextPosition) === '#') {
-                    continue;
-                }
-
-                $nextVertex = $graph->createVertex($nextPosition->__toString(), true);
-                $edge = $vertex->createEdgeTo($nextVertex);
-                $edge->setWeight(1);
-            }
+            $position = $nextPosition;
+            $this->path[$position->__toString()] = ['position' => $position, 'index' => $i];
+            $i++;
         }
-
-        return $graph;
     }
 
     public function firstStar(): string
     {
-        $startVertex = $this->graph->getVertex($this->start->__toString());
-        $endVertex = $this->graph->getVertex($this->end->__toString());
-        $solver = new BreadthFirst($startVertex);
-        $path = $solver->getWalkTo($endVertex);
-
-        $pathWithIndex = [];
-        foreach ($path->getVertices() as $i => $vertex) {
-            $pathWithIndex[$vertex->getId()] = ['position' => $vertex->getAttribute('position'), 'index' => $i];
-        }
         $directions = Direction::vectors();
 
         $result = [];
-        foreach ($pathWithIndex as $positionAndIndex) {
+        foreach ($this->path as $positionAndIndex) {
             /** @var Vector2DInt $position */
             $position = $positionAndIndex['position'];
             foreach ($directions as $direction) {
@@ -107,12 +87,12 @@ final class Day20 extends AbstractSolver
                 }
 
                 $nextPosition = $potentialWallPosition->addVector2D($direction);
-                if (!isset($pathWithIndex[$nextPosition->__toString()])) {
+                if (!isset($this->path[$nextPosition->__toString()])) {
                     continue;
                 }
 
                 $currentIndex = $positionAndIndex['index'];
-                $nextIndex = $pathWithIndex[$nextPosition->__toString()]['index'];
+                $nextIndex = $this->path[$nextPosition->__toString()]['index'];
                 if ($nextIndex > $currentIndex + 2) {
                     $diff = $nextIndex - ($currentIndex + 2);
                     if (!isset($result[$diff])) {
@@ -134,9 +114,58 @@ final class Day20 extends AbstractSolver
         return (string) $total;
     }
 
+    private function manhattanDistance(Vector2DInt $a, Vector2DInt $b): int
+    {
+        return abs($a->x - $b->x) + abs($a->y - $b->y);
+    }
+
     public function secondStar(): string
     {
+        $directions = Direction::vectors();
+
+        $result = [];
+        foreach ($this->path as $positionAndIndex) {
+            /** @var Vector2DInt $position */
+            $position = $positionAndIndex['position'];
+            $currentIndex = $positionAndIndex['index'];
+            $minX = max(1, $position->x - 20);
+            $maxX = min($this->grid->getXMax() - 1, $position->x + 21);
+            $minY = max(1, $position->y - 20);
+            $maxY = min($this->grid->getYMax() - 1, $position->y + 21);
+            for ($x = $minX; $x < $maxX; $x++) {
+                for ($y = $minY; $y < $maxY; $y++) {
+                    $shortcutEnd = new Vector2DInt($x, $y);
+                    $value = $this->grid->getValue($shortcutEnd);
+                    if ($value === '#') {
+                        continue;
+                    }
+
+                    $distance = $this->manhattanDistance($position, $shortcutEnd);
+                    if ($distance > 20) {
+                        continue;
+                    }
+
+                    $nextIndex = $this->path[$shortcutEnd->__toString()]['index'];
+
+                    $diff = $nextIndex - ($currentIndex + $distance);
+
+                    if ($diff >= 50) {
+                        if (!isset($result[$diff])) {
+                            $result[$diff] = 0;
+                        }
+
+                        $result[$diff]++;
+                    }
+                }
+            }
+        }
+
         $total = 0;
+        foreach ($result as $gainedTime => $number) {
+            if ($gainedTime >= 100) {
+                $total += $number;
+            }
+        }
 
         return (string) $total;
     }
