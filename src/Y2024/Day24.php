@@ -26,10 +26,12 @@ final class Day24 extends AbstractSolver
             } elseif (str_contains($line, '->')) {
                 $matches = [];
                 preg_match($regex, $line, $matches);
+                $operands = [$matches[1], $matches[3]];
+                sort($operands);
                 $this->operations[$matches[4]] = [
-                    'operator'       => $matches[2],
-                    'operands'       => [$matches[1], $matches[3]],
-                    'resultVariable' => $matches[4],
+                    'operator' => $matches[2],
+                    'operands' => $operands,
+                    'out'      => $matches[4],
                 ];
             }
         }
@@ -38,10 +40,6 @@ final class Day24 extends AbstractSolver
     public function isFirstStarSolved(): bool
     {
         return true;
-    }
-
-    public function preSolve(): void
-    {
     }
 
     public function firstStar(): string
@@ -53,60 +51,88 @@ final class Day24 extends AbstractSolver
         return (string) $result;
     }
 
-    public function secondStar(): string
+    private function extractResults(string $id): array
     {
-        $total = 0;
-        $xResult = [];
-        $yResult = [];
-        foreach ($this->values as $variable => $value) {
-            if (str_starts_with($variable, 'x')) {
-                $xResult[$variable] = $value;
-            } elseif (str_starts_with($variable, 'y')) {
-                $yResult[$variable] = $value;
+        $operations = $this->findByOperand($id);
+        if (\count($operations) !== 2) {
+            throw new \Exception(\sprintf('Incorrect operation count (%d) for id %s', \count($operations), $id));
+        }
+        $and = null;
+        $xor = null;
+        foreach ($operations as $outWire => $operation) {
+            if ($operation['operator'] === 'AND') {
+                if ($and !== null) {
+                    throw new \Exception('Too many AND operators for id ' . $id);
+                }
+                $and = $outWire;
+            } elseif ($operation['operator'] === 'XOR') {
+                if ($xor !== null) {
+                    throw new \Exception('Too many XOR operators for id ' . $id);
+                }
+                $xor = $outWire;
+            } else {
+                throw new \Exception('Unknown operator for id ' . $id . ' / operator ' . $operation['operator']);
             }
         }
 
-        krsort($xResult);
-        krsort($yResult);
-        $expectedResult = $this->bitsToInt($xResult) + $this->bitsToInt($yResult);
-        $initialResult = $this->solveZBits($this->operations, $this->values);
-        $wrongBits = array_keys(array_diff_assoc($this->intToBits($expectedResult), $initialResult));
-
-        return (string) $total;
+        return ['xor' => $xor, 'and' => $and];
     }
 
-    private function extractUsefulVariables(
-        string $wire,
-        array $operations,
-        array $usefulVariables,
-        array $initialVariables
-    ): array {
-        $operands = $operations[$wire]['operands'];
-        if (!\in_array($operands[0], $usefulVariables, true)) {
-            $usefulVariables[] = $operands[0];
-            if (!\in_array($operands[0], $initialVariables, true)) {
-                $usefulVariables = $this->extractUsefulVariables(
-                    $operands[0],
-                    $operations,
-                    $usefulVariables,
-                    $initialVariables
+    public function secondStar(): string
+    {
+        $swaps = [];
+
+        foreach ($swaps as $swap) {
+            $this->swap($swap[0], $swap[1]);
+        }
+
+        $previousCarry = 'rhk';
+        for ($i = 1; $i < 45; $i++) {
+            $id = str_pad((string) $i, 2, '0', STR_PAD_LEFT);
+
+            ['and' => $leftHandCarry, 'xor' => $sumXY] = $this->extractResults('x' . $id);
+            ['and' => $rightHandCarry, 'xor' => $z] = $this->extractResults($previousCarry);
+
+            $zId = 'z' . $id;
+            if ($z !== $zId) {
+                $swaps[] = $this->swap($zId, $z);
+                ['and' => $leftHandCarry, 'xor' => $sumXY] = $this->extractResults('x' . $id);
+                ['and' => $rightHandCarry, 'xor' => $z] = $this->extractResults($previousCarry);
+            }
+
+            $carryOperations = $this->findByOperand($leftHandCarry);
+
+            if (\count($carryOperations) !== 1) {
+                $swaps[] = $this->swap($leftHandCarry, $sumXY);
+
+                $carryOperations = $this->findByOperand($rightHandCarry);
+            }
+            $previousCarry = array_key_first($carryOperations);
+            $operation = $carryOperations[$previousCarry];
+            if ($operation['operator'] !== 'OR') {
+                throw new \Exception(
+                    'Unknown operator for id ' . $previousCarry . ' / operator ' . $operation['operator']
                 );
             }
         }
-        if (!\in_array($operands[1], $usefulVariables, true)) {
-            $usefulVariables[] = $operands[1];
+        $flatSwaps = [];
 
-            if (!\in_array($operands[1], $initialVariables, true)) {
-                $usefulVariables = $this->extractUsefulVariables(
-                    $operands[1],
-                    $operations,
-                    $usefulVariables,
-                    $initialVariables
-                );
-            }
+        foreach ($swaps as $swap) {
+            $flatSwaps[] = $swap[0];
+            $flatSwaps[] = $swap[1];
         }
+        sort($flatSwaps);
 
-        return $usefulVariables;
+        return implode(',', $flatSwaps);
+    }
+
+    private function swap(string $a, string $b): array
+    {
+        $swap = $this->operations[$a];
+        $this->operations[$a] = $this->operations[$b];
+        $this->operations[$b] = $swap;
+
+        return [$a, $b];
     }
 
     private function bitsToInt(array $bits): int
@@ -121,22 +147,6 @@ final class Day24 extends AbstractSolver
         }
 
         return $result;
-    }
-
-    private function intToBits(int $number): array
-    {
-        $binString = decbin($number);
-
-        $bits = str_split($binString);
-        $size = \count($bits) - 1;
-
-        return array_combine(
-            array_map(
-                static fn(int $i) => 'z' . (($size - $i) < 10 ? '0' . ($size - $i) : (string) ($size - $i)),
-                array_keys($bits)
-            ),
-            array_map(static fn(string $char) => $char === '1', $bits)
-        );
     }
 
     public function solveZBits(array $operations, array $values): array
@@ -174,4 +184,11 @@ final class Day24 extends AbstractSolver
         return $bits;
     }
 
+    private function findByOperand(string $operand): array
+    {
+        return array_filter(
+            $this->operations,
+            static fn(array $operation) => \in_array($operand, $operation['operands'], true)
+        );
+    }
 }
